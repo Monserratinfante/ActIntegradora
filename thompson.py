@@ -1,54 +1,67 @@
+# thompson.py
 from afn import Estado, AFN
 
-def crear_afn_simbolo(simbolo):
-    """Crea un AFN para un símbolo individual."""
+
+def crear_afn_simbolo(simbolo, alfabeto):
+    """Crea un AFN para un símbolo individual, verificando que esté en el alfabeto."""
+    if simbolo not in alfabeto:
+        raise ValueError(f"El símbolo '{simbolo}' no está en el alfabeto {alfabeto}")
+
     inicio = Estado()
     fin = Estado()
     inicio.transiciones[simbolo] = [fin]
-    return AFN(inicio, fin)
+    return AFN(inicio, fin, alfabeto)  # Pasamos el alfabeto a la creación del AFN
 
-def concatenacion(afn1, afn2):
-    """Concatena dos AFNs."""
+
+def concatenacion(afn1, afn2, alfabeto):
+    """Concatena dos AFNs, considerando el alfabeto."""
     afn1.fin.epsilon.append(afn2.inicio)
-    return AFN(afn1.inicio, afn2.fin)
+    return AFN(afn1.inicio, afn2.fin, alfabeto)  # Pasamos el alfabeto
 
-def union(afn1, afn2):
-    """Realiza la unión de dos AFNs."""
+
+def union(afn1, afn2, alfabeto):
+    """Realiza la unión de dos AFNs, considerando el alfabeto."""
     inicio = Estado()
     fin = Estado()
     inicio.epsilon.extend([afn1.inicio, afn2.inicio])
     afn1.fin.epsilon.append(fin)
     afn2.fin.epsilon.append(fin)
-    return AFN(inicio, fin)
+    return AFN(inicio, fin, alfabeto)  # Pasamos el alfabeto
 
-def estrella(afn):
-    """Aplica la estrella de Kleene a un AFN."""
+
+def estrella(afn, alfabeto):
+    """Aplica la estrella de Kleene a un AFN, considerando el alfabeto."""
     inicio = Estado()
     fin = Estado()
     inicio.epsilon.extend([afn.inicio, fin])
     afn.fin.epsilon.extend([afn.inicio, fin])
-    return AFN(inicio, fin)
+    return AFN(inicio, fin, alfabeto)  # Pasamos el alfabeto
 
-def construir_afn_postfijo(postfijo):
-    """Construye un AFN a partir de una expresión regular en notación postfija."""
+
+def construir_afn_postfijo(postfijo, alfabeto):
+    """Construye un AFN a partir de una expresión regular en notación postfija, considerando el alfabeto."""
     pila = []
 
     for c in postfijo:
         if c not in {"*", ".", "|"}:  # Si es un símbolo del alfabeto
-            pila.append(crear_afn_simbolo(c))
+            if c in alfabeto:  # Validamos si el símbolo está en el alfabeto
+                pila.append(crear_afn_simbolo(c, alfabeto))  # Le pasamos el alfabeto
+            else:
+                raise ValueError(f"Símbolo {c} no válido en el alfabeto.")
         elif c == "*":  # Estrella de Kleene
             afn = pila.pop()
-            pila.append(estrella(afn))
+            pila.append(estrella(afn, alfabeto))
         elif c == ".":  # Concatenación
             afn2 = pila.pop()
             afn1 = pila.pop()
-            pila.append(concatenacion(afn1, afn2))
+            pila.append(concatenacion(afn1, afn2, alfabeto))
         elif c == "|":  # Unión
             afn2 = pila.pop()
             afn1 = pila.pop()
-            pila.append(union(afn1, afn2))
+            pila.append(union(afn1, afn2, alfabeto))
 
     return pila[0]
+
 
 def eliminar_estados_vacios(afn):
     """Elimina los estados vacíos del AFN."""

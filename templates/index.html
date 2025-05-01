@@ -13,17 +13,32 @@
         <input type="text" name="alfabeto" placeholder="{a,b,c}" required><br><br>
 
         <label>Expresión Regular:</label><br>
-        <input type="text" name="expresion" placeholder="0.1.0.1*" required><br><br>
+        <input type="text" name="expresion" placeholder="a(b|c)*" required><br><br>
 
         <label>Palabra a probar:</label><br>
-        <input type="text" name="palabra" placeholder="0101" required><br><br>
+        <input type="text" name="palabra" placeholder="abcccd" required><br><br>
 
         <button type="submit">Procesar</button>
     </form>
 
-    {% if resultado %}
-        <h2>Resultado:</h2>
-        <p>{{ resultado }}</p>
+    {% if resultado_afn %}
+        <h2>Resultado AFN:</h2>
+        <p>{{ resultado_afn }}</p>
+        <pre>{{ transiciones_afn }}</pre>
+    {% endif %}
+
+    {% if resultado_afd %}
+        <h2>Resultado AFD:</h2>
+        <p>{{ resultado_afd }}</p>
+        <pre>{{ transiciones_afd }}</pre>
+
+        <h3>Imagen del AFD:</h3>
+        <img src="{{ url_for('static', filename='afd.png') }}" alt="AFD Diagram">
+    {% endif %}
+
+    {% if resultado_palabra %}
+        <h2>Resultado de la palabra:</h2>
+        <p>{{ resultado_palabra }}</p>
     {% endif %}
 </body>
 </html>

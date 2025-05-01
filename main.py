@@ -1,8 +1,9 @@
 # main.py
-
 from alfabeto import seleccionar_alfabeto, validar_expresion_regular
 from expresion_regular import a_postfijo
 from thompson import construir_afn_postfijo
+from afd import convertir_afn_a_afd, imprimir_afd
+
 
 def imprimir_afn(afn):
     """Imprime las transiciones del AFN con nombres legibles para los estados."""
@@ -27,7 +28,9 @@ def imprimir_afn(afn):
         print(f"Estado {nombre_estado}:")
         for simbolo, destinos in estado.transiciones.items():
             for destino in destinos:
-                print(f"  {nombre_estado} --{simbolo}--> {obtener_nombre_estado(destino)}")
+                print(
+                    f"  {nombre_estado} --{simbolo}--> {obtener_nombre_estado(destino)}"
+                )
         for destino in estado.epsilon:
             print(f"  {nombre_estado} --ε--> {obtener_nombre_estado(destino)}")
         for simbolo, destinos in estado.transiciones.items():
@@ -41,8 +44,11 @@ def imprimir_afn(afn):
     print(f"Estado inicial: {obtener_nombre_estado(afn.inicio)}")
     print(f"Estado final: {obtener_nombre_estado(afn.fin)}")
 
+
 # Solicitar al usuario el alfabeto
-alfabeto_usuario = input("Introduce el alfabeto (símbolos separados por comas): ").split(",")
+alfabeto_usuario = input(
+    "Introduce el alfabeto (símbolos separados por comas): "
+).split(",")
 alfabeto = set(alfabeto_usuario)
 
 # Solicitar al usuario la expresión regular
@@ -54,11 +60,19 @@ if validar_expresion_regular(expresion, alfabeto):
     postfijo = a_postfijo(expresion)
     print(f"Expresión en notación postfija: {''.join(postfijo)}")
 
-    # Construir el AFN
-    afn = construir_afn_postfijo(postfijo)
+    # Construir el AFN (pasando el alfabeto)
+    afn = construir_afn_postfijo(postfijo, alfabeto)
     print("AFN creado con éxito.")
 
     # Imprimir las transiciones del AFN
     imprimir_afn(afn)
+
+    # Convertir el AFN a AFD
+    afd = convertir_afn_a_afd(afn)
+    print("AFD creado con éxito.")
+
+    # Imprimir el AFD
+    imprimir_afd(afd)
+
 else:
     print("La expresión regular contiene símbolos no válidos en el alfabeto.")
