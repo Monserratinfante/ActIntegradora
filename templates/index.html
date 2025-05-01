@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Actividad Integradora 1</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='indexstyle.css') }}">
+</head>
+<body>
+    <h1>Actividad Integradora 1 - Lenguajes Regulares</h1>
+
+    <form method="POST">
+        <label>Alfabeto (separado por comas):</label><br>
+        <input type="text" name="alfabeto" placeholder="{a,b,c}" required><br><br>
+
+        <label>Expresión Regular:</label><br>
+        <input type="text" name="expresion" placeholder="0.1.0.1*" required><br><br>
+
+        <label>Palabra a probar:</label><br>
+        <input type="text" name="palabra" placeholder="0101" required><br><br>
+
+        <button type="submit">Procesar</button>
+    </form>
+
+    {% if resultado %}
+        <h2>Resultado:</h2>
+        <p>{{ resultado }}</p>
+    {% endif %}
+</body>
+</html>
