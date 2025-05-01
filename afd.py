@@ -136,70 +136,68 @@ def dibujar_afd(afd):
         elif estado_frozenset in afd.estados_finales:
             G.nodes[nombre]["is_final"] = True
 
-    # Añadir las transiciones como aristas al grafo
+    # Añadir las transiciones
     for (
         estado_origen_frozenset,
         simbolo,
     ), estado_destino_frozenset in afd.transiciones.items():
         nombre_origen = obtener_nombre_estado(estado_origen_frozenset)
         nombre_destino = obtener_nombre_estado(estado_destino_frozenset)
-        G.add_edge(nombre_origen, nombre_destino, label=simbolo)  # Añadir la transición
+        G.add_edge(nombre_origen, nombre_destino, label=simbolo)
 
-    # Generar la visualización
-    pos = nx.spring_layout(G, seed=42)  # Layout para la disposición de los nodos
+    pos = nx.spring_layout(G, seed=42)
     labels = nx.get_edge_attributes(G, "label")
 
-    plt.figure(figsize=(12, 8))  # Tamaño de la imagen
+    plt.figure(figsize=(12, 8))
 
-    # Dibujar los nodos
+    # Nodos
     node_colors = []
-    # Lista para dibujar los bordes de los nodos finales
+
     final_node_borders = []
-    node_list = []  # Para mantener el orden de los nodos dibujados
+    node_list = []
 
     for node_name in G.nodes():
         node_list.append(node_name)
         if G.nodes[node_name].get("is_initial"):
-            # Si es inicial y final
             if G.nodes[node_name].get("is_final"):
-                node_colors.append("lightgreen")  # Color inicial-final
-                final_node_borders.append(node_name)  # Añadir para dibujar doble borde
+                node_colors.append("lightgreen")
+                final_node_borders.append(node_name)
             else:
-                node_colors.append("lightgreen")  # Color inicial
+                node_colors.append("lightgreen")
         elif G.nodes[node_name].get("is_final"):
-            node_colors.append("salmon")  # Color final
-            final_node_borders.append(node_name)  # Añadir para dibujar doble borde
+            node_colors.append("salmon")
+            final_node_borders.append(node_name)
         else:
-            node_colors.append("lightblue")  # Color normal
+            node_colors.append("lightblue")
 
     nx.draw(
         G,
         pos,
-        nodelist=node_list,  # Usar la lista de nodos para asegurar el orden
+        nodelist=node_list,
         with_labels=True,
         node_size=3000,
         node_color=node_colors,
         font_size=12,
         font_weight="bold",
-        edgecolors="black",  # Borde por defecto
-        linewidths=1,  # Grosor del borde por defecto
+        edgecolors="black",
+        linewidths=1,
     )
 
-    # Dibujar el borde doble para los estados finales
+    # Estados de aceptacion
     nx.draw_networkx_nodes(
         G,
         pos,
         nodelist=final_node_borders,
-        node_size=3500,  # Tamaño ligeramente mayor para el borde exterior
-        node_color="none",  # Transparente por dentro
+        node_size=3500,
+        node_color="none",
         edgecolors="black",
-        linewidths=2,  # Borde más grueso
+        linewidths=2,
     )
 
-    # Dibujar las etiquetas de las aristas
+    # Etiquetas aristas
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color="red")
 
-    # Guardar la imagen
+    # Guardar la imagen del fdsa creado
     if not os.path.exists("static"):
         os.makedirs("static")
 
