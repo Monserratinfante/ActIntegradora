@@ -1,208 +1,185 @@
-# afd.py
-
 import matplotlib.pyplot as plt
 import networkx as nx
-import os  # Importar os para crear el directorio static
-
+import os
 
 class AFD:
     def __init__(self):
-        # Lista de frozensets, donde cada frozenset representa un estado del AFD
         self.estados = []
-        # Transiciones del AFD {(frozenset(estado_actual), simbolo) -> frozenset(estado_destino)}
         self.transiciones = {}
-        # El estado inicial es un frozenset
         self.estado_inicial = None
-        # Conjunto de frozensets, donde cada frozenset representa un estado final del AFD
         self.estados_finales = set()
+        self.estado_trampa = frozenset()
+        self._nombres_estados = {}
+        self._contador_estados = 0
 
-    def __repr__(self):
-        # Representación más amigable para depuración
-        return f"AFD(inicial={self.estado_inicial}, finales={self.estados_finales}, num_estados={len(self.estados)})"
+    def obtener_nombre_estado(self, estado):
+        """Obtiene un nombre consistente para un estado."""
+        if estado not in self._nombres_estados:
+            if estado == self.estado_trampa:
+                self._nombres_estados[estado] = "qT"
+            elif estado == self.estado_inicial:
+                self._nombres_estados[estado] = "q0"
+            else:
+                self._contador_estados += 1
+                self._nombres_estados[estado] = f"q{self._contador_estados}"
+        return self._nombres_estados[estado]
 
+    def agregar_estado_trampa(self, alfabeto):
+        """Agrega el estado trampa y sus transiciones."""
+        if self.estado_trampa not in self.estados:
+            self.estados.append(self.estado_trampa)
+
+        # Agregar transiciones faltantes al estado trampa
+        for estado in self.estados:
+            for simbolo in alfabeto:
+                if (estado, simbolo) not in self.transiciones:
+                    self.transiciones[(estado, simbolo)] = self.estado_trampa
+
+        # Todas las transiciones desde el estado trampa van a sí mismo
+        for simbolo in alfabeto:
+            self.transiciones[(self.estado_trampa, simbolo)] = self.estado_trampa
 
 def epsilon_closure(estado_afn):
     """Calcula la cerradura epsilon de un estado AFN."""
     cerradura = {estado_afn}
-    pila = [estado_afn]  # Usamos una pila para recorrer las transiciones epsilon
+    pila = [estado_afn]
 
     while pila:
         actual = pila.pop()
-        # Verificar si 'epsilon' existe y es iterable
-        if hasattr(actual, "epsilon") and isinstance(actual.epsilon, list):
-            for siguiente_estado in actual.epsilon:
-                if siguiente_estado not in cerradura:
-                    cerradura.add(siguiente_estado)
-                    pila.append(siguiente_estado)
+        if hasattr(actual, 'epsilon') and isinstance(actual.epsilon, list):
+            for siguiente in actual.epsilon:
+                if siguiente not in cerradura:
+                    cerradura.add(siguiente)
+                    pila.append(siguiente)
+    
     return cerradura
-
 
 def convertir_afn_a_afd(afn):
     """Convierte un AFN en un AFD utilizando el algoritmo de subconjuntos."""
     afd = AFD()
 
-    # Calcular la cerradura epsilon del estado inicial del AFN y convertirla a frozenset
+    # Calcular la cerradura epsilon del estado inicial del AFN
     estado_inicial_afn_closure = epsilon_closure(afn.inicio)
     estado_inicial_afd_frozenset = frozenset(estado_inicial_afn_closure)
 
     afd.estado_inicial = estado_inicial_afd_frozenset
     afd.estados.append(estado_inicial_afd_frozenset)
 
-    # La lista de pendientes ahora contendrá frozensets
     pendientes = [estado_inicial_afd_frozenset]
-    # Usamos un set para estados_procesados para búsquedas eficientes
     estados_procesados = {estado_inicial_afd_frozenset}
 
     while pendientes:
-        estado_actual_frozenset = pendientes.pop()  # Extraemos un frozenset
+        estado_actual_frozenset = pendientes.pop()
 
-        # *** CORRECCIÓN: Verificar si el estado AFD contiene el estado final del AFN ***
-        if afn.fin in estado_actual_frozenset:
+        # Verificar si el estado actual contiene algún estado final del AFN
+        if any(estado.es_final for estado in estado_actual_frozenset):
             afd.estados_finales.add(estado_actual_frozenset)
 
-        # Iterar sobre los símbolos del alfabeto del AFN
-        # Usar un set para el alfabeto para evitar duplicados si se pasa una lista
-        for simbolo in sorted(list(afn.alfabeto)):  # Ordenar para consistencia
-
+        # Procesar cada símbolo del alfabeto
+        for simbolo in sorted(list(afn.alfabeto)):
             siguiente_estados_afn = set()
 
-            # Para cada estado AFN dentro del estado AFD actual (frozenset)
+            # Obtener todos los estados alcanzables con el símbolo actual
             for estado_afn in estado_actual_frozenset:
-                # Si el símbolo es una transición desde este estado AFN
                 if simbolo in estado_afn.transiciones:
-                    # Agregar los estados AFN destino al conjunto temporal
                     siguiente_estados_afn.update(estado_afn.transiciones[simbolo])
 
-            # Si se encontraron estados AFN alcanzables con este símbolo
             if siguiente_estados_afn:
-                # Calcular la cerradura epsilon de los estados AFN alcanzados
+                # Calcular la cerradura epsilon para cada estado alcanzado
                 siguiente_estado_closure_afn = set()
                 for estado_afn in siguiente_estados_afn:
                     siguiente_estado_closure_afn.update(epsilon_closure(estado_afn))
 
-                # Convertir el conjunto de estados AFN a un frozenset para el estado AFD destino
                 siguiente_estado_afd_frozenset = frozenset(siguiente_estado_closure_afn)
 
-                # Si este estado AFD destino no ha sido procesado o añadido a pendientes
                 if siguiente_estado_afd_frozenset not in estados_procesados:
                     afd.estados.append(siguiente_estado_afd_frozenset)
                     pendientes.append(siguiente_estado_afd_frozenset)
                     estados_procesados.add(siguiente_estado_afd_frozenset)
 
-                # Guardamos la transición en el AFD
-                afd.transiciones[(estado_actual_frozenset, simbolo)] = (
-                    siguiente_estado_afd_frozenset
-                )
+                afd.transiciones[(estado_actual_frozenset, simbolo)] = siguiente_estado_afd_frozenset
+
+    # Agregar el estado trampa y sus transiciones
+    afd.agregar_estado_trampa(afn.alfabeto)
 
     return afd
 
-
 def dibujar_afd(afd):
-    """Dibuja el AFD usando matplotlib y networkx y guarda la imagen."""
+    """Dibuja el AFD usando matplotlib y networkx."""
+    G = nx.DiGraph()
 
-    G = nx.DiGraph()  # Crear un grafo dirigido
-
-    # Diccionario para asignar nombres legibles (q0, q1, ...) a los frozensets de estados AFD
+    # Asignar nombres a los estados
     nombres_estados = {}
-    contador = 0
+    for estado in afd.estados:
+        nombres_estados[estado] = afd.obtener_nombre_estado(estado)
 
-    # Asegurarse de que el estado inicial siempre sea q0 si existe
-    if afd.estado_inicial:
-        nombres_estados[afd.estado_inicial] = "q0"
-        contador = 1  # Empezar el contador para los demás estados
-
-    def obtener_nombre_estado(estado_frozenset):
-        """Asigna un nombre legible a un estado AFD (frozenset)."""
-        nonlocal contador
-        if estado_frozenset not in nombres_estados:
-            nombres_estados[estado_frozenset] = f"q{contador}"
-            contador += 1
-        return nombres_estados[estado_frozenset]
-
-    # Añadir los estados como nodos al grafo
-    # Asegurarse de añadir primero el estado inicial si existe
-    if afd.estado_inicial:
-        G.add_node(obtener_nombre_estado(afd.estado_inicial), is_initial=True)
-
-    for estado_frozenset in afd.estados:
-        nombre = obtener_nombre_estado(estado_frozenset)
-        # Añadir nodo si no es el estado inicial (ya añadido)
-        if estado_frozenset != afd.estado_inicial:
-            if estado_frozenset in afd.estados_finales:
-                G.add_node(nombre, is_final=True)
-            else:
-                G.add_node(nombre)
-        # Si es el estado inicial y también es final
-        elif estado_frozenset in afd.estados_finales:
+    # Añadir nodos
+    for estado in afd.estados:
+        nombre = nombres_estados[estado]
+        if estado == afd.estado_inicial:
+            G.add_node(nombre, is_initial=True)
+        elif estado == afd.estado_trampa:
+            G.add_node(nombre, is_trap=True)
+        else:
+            G.add_node(nombre)
+        
+        if estado in afd.estados_finales:
             G.nodes[nombre]["is_final"] = True
 
-    # Añadir las transiciones
-    for (
-        estado_origen_frozenset,
-        simbolo,
-    ), estado_destino_frozenset in afd.transiciones.items():
-        nombre_origen = obtener_nombre_estado(estado_origen_frozenset)
-        nombre_destino = obtener_nombre_estado(estado_destino_frozenset)
+    # Añadir aristas
+    for (estado_origen, simbolo), estado_destino in afd.transiciones.items():
+        nombre_origen = nombres_estados[estado_origen]
+        nombre_destino = nombres_estados[estado_destino]
         G.add_edge(nombre_origen, nombre_destino, label=simbolo)
 
-    pos = nx.spring_layout(G, seed=42)
-    labels = nx.get_edge_attributes(G, "label")
-
+    pos = nx.spring_layout(G, k=1, iterations=50)
     plt.figure(figsize=(12, 8))
 
-    # Nodos
+    # Dibujar nodos
     node_colors = []
-
     final_node_borders = []
     node_list = []
 
-    for node_name in G.nodes():
-        node_list.append(node_name)
-        if G.nodes[node_name].get("is_initial"):
-            if G.nodes[node_name].get("is_final"):
-                node_colors.append("lightgreen")
-                final_node_borders.append(node_name)
-            else:
-                node_colors.append("lightgreen")
-        elif G.nodes[node_name].get("is_final"):
-            node_colors.append("salmon")
-            final_node_borders.append(node_name)
-        else:
+    for node in G.nodes():
+        node_list.append(node)
+        if G.nodes[node].get("is_initial"):
+            node_colors.append("lightgreen")
+        elif G.nodes[node].get("is_trap"):
+            node_colors.append("lightgray")
+        elif G.nodes[node].get("is_final"):
             node_colors.append("lightblue")
+        else:
+            node_colors.append("white")
+        
+        if G.nodes[node].get("is_final"):
+            final_node_borders.append(node)
 
-    nx.draw(
-        G,
-        pos,
-        nodelist=node_list,
-        with_labels=True,
-        node_size=3000,
-        node_color=node_colors,
-        font_size=12,
-        font_weight="bold",
-        edgecolors="black",
-        linewidths=1,
-    )
+    nx.draw(G, pos, 
+            nodelist=node_list,
+            node_color=node_colors,
+            node_size=3000,
+            with_labels=True,
+            font_size=12,
+            font_weight="bold",
+            edgecolors="black",
+            linewidths=1)
 
-    # Estados de aceptacion
-    nx.draw_networkx_nodes(
-        G,
-        pos,
-        nodelist=final_node_borders,
-        node_size=3500,
-        node_color="none",
-        edgecolors="black",
-        linewidths=2,
-    )
+    # Dibujar estados finales con doble círculo
+    nx.draw_networkx_nodes(G, pos,
+                          nodelist=final_node_borders,
+                          node_size=3500,
+                          node_color="none",
+                          edgecolors="black",
+                          linewidths=2)
 
-    # Etiquetas aristas
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color="red")
+    # Dibujar etiquetas de las aristas
+    edge_labels = nx.get_edge_attributes(G, "label")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color="red")
 
-    # Guardar la imagen del fdsa creado
+    # Guardar la imagen
     if not os.path.exists("static"):
         os.makedirs("static")
-
-    image_path = "static/afd.png"
-    plt.savefig(image_path)
+    plt.savefig("static/afd.png")
     plt.close()
 
-    return image_path
+    return "static/afd.png"
