@@ -8,22 +8,45 @@
 <body>
     <h1>Actividad Integradora 1 - Lenguajes Regulares</h1>
 
+    {% if error %}
+        <div class="error">
+            {{ error }}
+        </div>
+    {% endif %}
+
     <form method="POST">
         <label>Alfabeto (separado por comas):</label><br>
-        <input type="text" name="alfabeto" placeholder="{a,b,c}" required><br><br>
+        <input type="text" name="alfabeto" placeholder="a,b,c" value="{{ alfabeto }}" required><br>
+        <small>Ejemplo: a,b,c o 0,1</small><br><br>
 
         <label>Expresión Regular:</label><br>
-        <input type="text" name="expresion" placeholder="0.1.0.1*" required><br><br>
+        <input type="text" name="expresion" placeholder="a(b|c)*" value="{{ expresion }}" required><br>
+        <small>Operadores permitidos: | (unión), * (estrella), () (agrupación)</small><br><br>
 
         <label>Palabra a probar:</label><br>
-        <input type="text" name="palabra" placeholder="0101" required><br><br>
+        <input type="text" name="palabra" placeholder="abcccd" value="{{ palabra }}" required><br><br>
 
         <button type="submit">Procesar</button>
     </form>
 
-    {% if resultado %}
-        <h2>Resultado:</h2>
-        <p>{{ resultado }}</p>
+    {% if resultado_afn %}
+        <h2>Resultado AFN:</h2>
+        <p>{{ resultado_afn }}</p>
+        <pre class="transiciones">{{ transiciones_afn }}</pre>
+    {% endif %}
+
+    {% if resultado_afd %}
+        <h2>Resultado AFD:</h2>
+        <p>{{ resultado_afd }}</p>
+        <pre class="transiciones">{{ transiciones_afd }}</pre>
+
+        <h3>Diagrama del AFD:</h3>
+        <img src="{{ url_for('static', filename='afd.png') }}" alt="Diagrama del AFD">
+    {% endif %}
+
+    {% if resultado_palabra %}
+        <h2>Resultado de la palabra:</h2>
+        <pre class="resultado">{{ resultado_palabra }}</pre>
     {% endif %}
 </body>
 </html>
